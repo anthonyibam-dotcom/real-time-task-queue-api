@@ -1,0 +1,78 @@
+Act as a Senior Python Systems Engineer. Build a high-performance, asynchronous background task queue system named "Real-Time Task Queue API" using FastAPI, Celery, Redis, and WebSockets.
+
+The system will demonstrate production-grade asynchronous job execution (such as bulk grade CSV imports and async report generation) with real-time job progress tracking over WebSockets.
+
+### 1. Project Requirements & Architecture
+
+#### Tech Stack
+- Framework: FastAPI (Async)
+- Task Queue & Broker: Celery + Redis
+- Real-Time Communication: WebSockets
+- Containerization: Docker & Docker Compose
+- Validation: Pydantic v2
+- Testing: Pytest + AsyncIO test client
+
+#### Project Folder Structure
+task_queue_api/
+├── app/
+│   ├── api/
+│   │   └── v1/
+│   │       ├── endpoints/
+│   │       │   ├── tasks.py       # REST triggers for async tasks
+│   │       │   └── websockets.py  # Live progress stream
+│   │       └── router.py
+│   ├── core/
+│   │   ├── config.py
+│   │   └── celery_app.py          # Celery configuration & broker setup
+│   ├── services/
+│   │   ├── task_manager.py        # Redis status tracker & WebSocket connection manager
+│   │   └── export_service.py      # Business logic for tasks
+│   ├── tasks/                     # Celery background task definitions
+│   │   ├── bulk_import.py
+│   │   └── report_generation.py
+│   └── main.py
+├── tests/
+│   ├── test_tasks_api.py
+│   └── test_websockets.py
+├── docker-compose.yml
+├── Dockerfile
+├── .gitignore
+├── .env.example
+├── requirements.txt
+└── README.md
+
+### 2. Core Functional Requirements
+
+1. **Async Job Triggers (REST Endpoints)**:
+   - `POST /api/v1/tasks/bulk-import`: Accepts a CSV file upload containing student grade records. Offloads processing to a Celery worker. Returns a unique `task_id`.
+   - `POST /api/v1/tasks/generate-report`: Triggers asynchronous generation of a student performance report (PDF/CSV format). Returns `task_id`.
+   - `GET /api/v1/tasks/{task_id}`: Standard REST endpoint returning current state (`PENDING`, `STARTED`, `PROGRESS`, `SUCCESS`, `FAILURE`) and percentage completion.
+
+2. **Real-Time WebSocket Progress Updates (`/ws/tasks/{task_id}`)**:
+   - Establish a WebSocket endpoint allowing clients to subscribe to a specific `task_id`.
+   - Use Redis Pub/Sub or Celery state hooks to stream live JSON updates as the task processes:
+     `{"task_id": "...", "status": "PROGRESS", "progress": 65, "message": "Processing row 650 of 1000"}`
+   - Cleanly close the WebSocket connection once the task completes (`SUCCESS`) or errors out (`FAILURE`).
+
+3. **Celery Worker Configuration**:
+   - Configure Celery with Redis as both message broker and result backend.
+   - Implement custom task states and progress callbacks that update Redis state during chunked row processing.
+
+4. **Docker & Orchestration Setup**:
+   - Include a complete `docker-compose.yml` that provisions:
+     1. `web`: FastAPI application server.
+     2. `celery_worker`: Background process running tasks.
+     3. `redis`: Broker and cache layer.
+
+### 3. Automated Tests & Deliverables
+- Write `pytest` test cases checking task creation and REST status queries.
+- Include a lightweight HTML/JS test script or Python script in `scripts/test_ws.py` to test WebSocket live stream execution.
+
+### 4. GitHub Documentation (`README.md`)
+Create an enterprise-ready `README.md` containing:
+1. **Badges** (FastAPI, Redis, Celery, Docker).
+2. **System Architecture Diagram** (Mermaid.js flowchart detailing Client -> FastAPI -> Redis -> Celery Worker -> WebSocket feedback loop).
+3. **One-Command Launch Guide** (`docker-compose up --build`).
+4. **WebSocket Test Instructions** showing live output examples.
+
+Execute step-by-step: construct all modules, task definitions, Docker configurations, tests, and documentation.
